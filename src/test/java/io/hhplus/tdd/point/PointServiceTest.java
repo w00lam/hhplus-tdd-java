@@ -122,7 +122,7 @@ public class PointServiceTest {
         UserPoint beforeCharge = new UserPoint(userId, 10000L, Instant.parse("2025-11-06T00:00:00Z").toEpochMilli());
         UserPoint afterCharge = new UserPoint(userId, 0L, Instant.parse("2025-11-06T00:00:00Z").toEpochMilli());
         given(userPointRepository.selectById(userId)).willReturn(beforeCharge);
-        given(userPointRepository.insertOrUpdate(userId, beforeCharge.point() + use)).willReturn(afterUse);
+        given(userPointRepository.insertOrUpdate(userId, beforeCharge.point() + use)).willReturn(afterCharge);
 
         UserPoint result = pointService.useUserPoint(userId, use);
 

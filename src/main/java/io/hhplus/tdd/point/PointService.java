@@ -22,7 +22,7 @@ public class PointService {
     public UserPoint chargeUserPoint(long userId, long amount) {
         UserPoint userPoint = getUserPoint(userId);
 
-        userPoint.validatePoint(amount);
+        userPoint.validateCharge(amount);
 
         pointHistoryRepository.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());
 
@@ -32,7 +32,7 @@ public class PointService {
     public UserPoint useUserPoint(long userId, long amount) {
         UserPoint userPoint = getUserPoint(userId);
 
-        userPoint.validatePoint(amount);
+        userPoint.validateUse(amount);
 
         pointHistoryRepository.insert(userId, amount, TransactionType.USE, System.currentTimeMillis());
 
