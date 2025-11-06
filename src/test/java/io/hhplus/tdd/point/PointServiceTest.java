@@ -130,4 +130,56 @@ public class PointServiceTest {
         then(pointHistoryRepository).shouldHaveNoInteractions();
         then(userPointRepository).shouldHaveNoMoreInteractions();
     }
+
+    @Test
+    @DisplayName("포인트 사용이 이용내역(PointHistory)에 추가되는지 테스트한다.")
+    void givenWhenUsePoint_thenAddPointHistory() {
+        long userId = 1L;
+        long use = 10000L;
+        TransactionType type = TransactionType.USE;
+        long updateMillis = Instant.parse("2025-11-06T00:00:00Z").toEpochMilli();
+        PointHistory history = new PointHistory(1L, userId, use, type, updateMillis);
+        given(pointHistoryRepository.insert(userId, use, type, updateMillis)).willReturn(history);
+
+        PointHistory result = pointHistoryRepository.insert(userId, use, type, updateMillis);
+
+        then(pointHistoryRepository).should(times(1)).insert(userId, use, type, updateMillis);
+        then(pointHistoryRepository).shouldHaveNoMoreInteractions();
+
+        assertThat(result).isEqualTo(history);
+    }
+
+    @Test
+    @DisplayName("포인트 사용에 성공한다.")
+    void givenUserIdAndUsePoint_whenThenUsePoint() {
+        long userId = 1L;
+        long use = 10000L;
+        UserPoint beforeUse = new UserPoint(userId, 10000L, Instant.parse("2025-11-06T00:00:00Z").toEpochMilli());
+        UserPoint afterUse = new UserPoint(userId, 0L, Instant.parse("2025-11-06T00:00:00Z").toEpochMilli());
+        given(userPointRepository.selectById(userId)).willReturn(beforeUse);
+        given(userPointRepository.insertOrUpdate(userId, beforeUse.point() - use)).willReturn(afterUse);
+
+        UserPoint result = pointService.useUserPoint(userId, use);
+
+        assertThat(result).isEqualTo(afterUse);
+    }
+
+    @Test
+    @DisplayName("사용자의 포인트를 초과하여 사용할 시 예외를 반환한다.")
+    void givenUserIdAndBiggerThanHavingUserPoint_whenUsePoint_ReturnException() {
+        long userId = 1L;
+        long use = 100000L;
+        UserPoint userPoint = new UserPoint(userId, 10000L, Instant.parse("2025-11-06T00:00:00Z").toEpochMilli());
+        given(userPointRepository.selectById(userId)).willReturn(userPoint);
+
+        assertThatThrownBy(() -> {
+            pointService.useUserPoint(userId, use);
+        })
+                .isInstanceOf(PointServiceException.class)
+                .hasMessage("사용 가능한 포인트를 초과했습니다.\n" +
+                        "현재 사용할 수 있는 포인트는 " + userPoint.point() + "원 입니다.");
+
+        then(pointHistoryRepository).shouldHaveNoInteractions();
+        then(userPointRepository).shouldHaveNoMoreInteractions();
+    }
 }

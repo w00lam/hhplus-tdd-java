@@ -28,4 +28,14 @@ public class PointService {
 
         return userPointRepository.insertOrUpdate(userId, userPoint.point() + amount);
     }
+
+    public UserPoint useUserPoint(long userId, long amount) {
+        UserPoint userPoint = getUserPoint(userId);
+
+        userPoint.validatePoint(amount);
+
+        pointHistoryRepository.insert(userId, amount, TransactionType.USE, System.currentTimeMillis());
+
+        return userPointRepository.insertOrUpdate(userId, userPoint.point() - amount);
+    }
 }

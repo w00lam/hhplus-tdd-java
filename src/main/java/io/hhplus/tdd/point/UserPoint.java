@@ -14,5 +14,9 @@ public record UserPoint(
         if (amount < 0) {
             throw new PointServiceException("최소 충전 금액은 1원 이상입니다.");
         }
+        if (this.point - amount < 0) {
+            throw new PointServiceException("사용 가능한 포인트를 초과했습니다.\n" +
+                    "현재 사용할 수 있는 포인트는 " + this.point() + "원 입니다.");
+        }
     }
 }
