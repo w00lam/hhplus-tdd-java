@@ -10,9 +10,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.BDDMockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.BDDMockito.*;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -96,25 +97,41 @@ public class PointServiceTest {
     }
 
     @Test
-    @DisplayName("존재하는 사용자 ID와 0보다 큰 포인트를 입력하면 충전되고 이용내역(PointHistory)을 추가한다.")
-    void givenExistentUserIdAndBiggerThanZeroPoint_whenChargePoint_thenAddPointHistory() {
+    @DisplayName("포인트 충전이 이용내역(PointHistory)에 추가되는지 테스트한다.")
+    void givenWhenChargePoint_thenAddPointHistory() {
         long userId = 1L;
-        long amount = 10000L;
+        long use = 10000L;
         TransactionType type = TransactionType.CHARGE;
         long updateMillis = Instant.parse("2025-11-06T00:00:00Z").toEpochMilli();
-        PointHistory history = new PointHistory(1L, userId, amount, type, updateMillis);
-        given(pointHistoryRepository.insert(userId, amount, type, updateMillis)).willReturn(history);
+        PointHistory history = new PointHistory(1L, userId, use, type, updateMillis);
+        given(pointHistoryRepository.insert(userId, use, type, updateMillis)).willReturn(history);
 
-        PointHistory result = pointHistoryRepository.insert(userId, amount, type, updateMillis);
+        PointHistory result = pointHistoryRepository.insert(userId, use, type, updateMillis);
 
-        then(pointHistoryRepository).should(times(1)).insert(userId, amount, type, updateMillis);
+        then(pointHistoryRepository).should(times(1)).insert(userId, use, type, updateMillis);
         then(pointHistoryRepository).shouldHaveNoMoreInteractions();
 
         assertThat(result).isEqualTo(history);
     }
 
     @Test
-    @DisplayName("존재하는 사용자 ID와 0이하의 포인트를 입력하면 충전에 실패하고 예외를 반환한다.")
+    @DisplayName("포인트 충전에 성공한다.")
+    void givenUserIdAndChargePoint_whenThenChargePoint() {
+        long userId = 1L;
+        long use = 10000L;
+        UserPoint beforeCharge = new UserPoint(userId, 10000L, Instant.parse("2025-11-06T00:00:00Z").toEpochMilli());
+        UserPoint afterCharge = new UserPoint(userId, 0L, Instant.parse("2025-11-06T00:00:00Z").toEpochMilli());
+        given(userPointRepository.selectById(userId)).willReturn(beforeCharge);
+        given(userPointRepository.insertOrUpdate(userId, beforeCharge.point() + use)).willReturn(afterUse);
+
+        UserPoint result = pointService.useUserPoint(userId, use);
+
+        assertThat(result).isEqualTo(afterCharge);
+        assertThat(result.point()).isEqualTo(afterCharge.point());
+    }
+
+    @Test
+    @DisplayName("0이하의 포인트를 입력하면 충전에 실패하고 예외를 반환한다.")
     void givenExistentUserIdAndSmallerEqualThanZeroPoint_whenChargePoint_thenReturnException() {
         long userId = 1L;
         long amount = -10000L;
