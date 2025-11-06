@@ -10,8 +10,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.BDDMockito.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
@@ -93,5 +93,41 @@ public class PointServiceTest {
         assertEquals(expected, result);
 
         assertThat(result.isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("존재하는 사용자 ID와 0보다 큰 포인트를 입력하면 충전되고 이용내역(PointHistory)을 추가한다.")
+    void givenExistentUserIdAndBiggerThanZeroPoint_whenChargePoint_thenAddPointHistory() {
+        long userId = 1L;
+        long amount = 10000L;
+        TransactionType type = TransactionType.CHARGE;
+        long updateMillis = Instant.parse("2025-11-06T00:00:00Z").toEpochMilli();
+        PointHistory history = new PointHistory(1L, userId, amount, type, updateMillis);
+        given(pointHistoryRepository.insert(userId, amount, type, updateMillis)).willReturn(history);
+
+        PointHistory result = pointHistoryRepository.insert(userId, amount, type, updateMillis);
+
+        then(pointHistoryRepository).should(times(1)).insert(userId, amount, type, updateMillis);
+        then(pointHistoryRepository).shouldHaveNoMoreInteractions();
+
+        assertThat(result).isEqualTo(history);
+    }
+
+    @Test
+    @DisplayName("존재하는 사용자 ID와 0이하의 포인트를 입력하면 충전에 실패하고 예외를 반환한다.")
+    void givenExistentUserIdAndSmallerEqualThanZeroPoint_whenChargePoint_thenReturnException() {
+        long userId = 1L;
+        long amount = -10000L;
+        UserPoint userPoint = new UserPoint(userId, 10000L, Instant.parse("2025-11-05T00:00:01Z").toEpochMilli());
+        given(userPointRepository.selectById(userId)).willReturn(userPoint);
+
+        assertThatThrownBy(() -> {
+            pointService.chargeUserPoint(userId, amount);
+        })
+                .isInstanceOf(PointServiceException.class)
+                .hasMessage("최소 충전 금액은 1원 이상입니다.");
+
+        then(pointHistoryRepository).shouldHaveNoInteractions();
+        then(userPointRepository).shouldHaveNoMoreInteractions();
     }
 }

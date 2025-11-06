@@ -12,9 +12,13 @@ import java.util.List;
 public class PointHistoryRepository {
     private final PointHistoryTable pointHistoryTable;
 
-    public List<PointHistory> selectAllByUserIdByUpdateMillisDesc(long userId){
+    public List<PointHistory> selectAllByUserIdByUpdateMillisDesc(long userId) {
         return pointHistoryTable.selectAllByUserId(userId)
                 .stream()
                 .sorted(Comparator.comparingLong(PointHistory::id).reversed()).toList();
+    }
+
+    public PointHistory insert(long userId, long amount, TransactionType type, long updateMillis) {
+        return pointHistoryTable.insert(userId, amount, type, updateMillis);
     }
 }

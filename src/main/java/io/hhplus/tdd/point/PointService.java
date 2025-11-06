@@ -18,4 +18,14 @@ public class PointService {
     public List<PointHistory> getUserPointHistory(long userId) {
         return pointHistoryRepository.selectAllByUserIdByUpdateMillisDesc(userId);
     }
+
+    public UserPoint chargeUserPoint(long userId, long amount) {
+        UserPoint userPoint = getUserPoint(userId);
+
+        userPoint.validatePoint(amount);
+
+        pointHistoryRepository.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());
+
+        return userPointRepository.insertOrUpdate(userId, userPoint.point() + amount);
+    }
 }
